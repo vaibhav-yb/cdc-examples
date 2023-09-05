@@ -14,15 +14,18 @@ import org.apache.commons.cli.Options;
  */
 public class CmdLineOpts {
   private final String connectorClass = "io.debezium.connector.yugabytedb.YugabyteDBConnector";
-  public String masterAddresses;
-  public String hostname;
-  public String databasePort = "5433";
-  public String streamId;
-  public String tableIncludeList;
-  public String databaseName = "yugabyte";
-  public String databasePassword = "Yugabyte@123";
-  public String databaseUser = "yugabyte";
-  public String snapshotMode = "never";
+  private String masterAddresses;
+  private String hostname;
+  private String databasePort = "5433";
+  private String streamId;
+  private String tableIncludeList;
+  private String databaseName = "yugabyte";
+  private String databasePassword = "Yugabyte@123";
+  private String databaseUser = "yugabyte";
+  private String snapshotMode = "never";
+  private boolean printOnlyPayload = false;
+  private boolean disableRecordOutput = false;
+  private boolean printCounters = false;
 
   public static CmdLineOpts createFromArgs(String[] args) {
     Options options = new Options();
@@ -31,6 +34,10 @@ public class CmdLineOpts {
     options.addOption("stream_id", true, "DB stream ID");
     options.addOption("table_include_list", true, "The table list to poll for in the form"
                       + " <schemaName>.<tableName>");
+    options.addOption("snapshot", false, "Whether to take snapshot");
+    options.addOption("print_payload", false, "Print the payload of the records");
+    options.addOption("disable_record_output", false, "Do not print any record");
+    options.addOption("print_counters", false, "Print the count of each type of record");
 
     CommandLineParser parser = new DefaultParser();
     CommandLine commandLine = null;
@@ -60,6 +67,34 @@ public class CmdLineOpts {
     if (commandLine.hasOption("table_include_list")) {
       tableIncludeList = commandLine.getOptionValue("table_include_list");
     }
+
+    if (commandLine.hasOption("snapshot")) {
+      snapshotMode = "initial";
+    }
+
+    if (commandLine.hasOption("print_payload")) {
+      printOnlyPayload = true;
+    }
+
+    if (commandLine.hasOption("disable_record_output")) {
+      this.disableRecordOutput = true;
+    }
+    
+    if (commandLine.hasOption("print_counters")) {
+      this.printCounters = true;
+    }
+  }
+
+  public boolean shouldPrintOnlyPayload() {
+    return printOnlyPayload;
+  }
+
+  public boolean shouldDisableRecordOutput() {
+    return disableRecordOutput;
+  }
+
+  public boolean shouldPrintCounters() {
+    return printCounters;
   }
 
   public Properties asProperties() {

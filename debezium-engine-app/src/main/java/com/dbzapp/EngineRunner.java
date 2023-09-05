@@ -6,6 +6,8 @@ import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 
 import org.apache.kafka.connect.json.*;
+import org.json.JSONObject;
+
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,10 +18,12 @@ import java.util.concurrent.Executors;
  * @author Sumukh Phalgaonkar, Vaibhav Kushwaha (vkushwaha@yugabyte.com)
  */
 public class EngineRunner {
-  private CmdLineOpts config;
+  private final CmdLineOpts config;
+  private final Counter counter;
 
   public EngineRunner(CmdLineOpts config) {
     this.config = config;
+    this.counter = new Counter();
   }
 
   public void run() throws Exception {
@@ -34,8 +38,23 @@ public class EngineRunner {
             .using(props)
             .notifying((records, committer) -> {
                 for(ChangeEvent<String, String> record: records){
-                    System.out.println(record);
-                    committer.markProcessed((record));
+                  String recordValue = record.value().isEmpty() ? "{}" : record.value();
+                  JSONObject value = new JSONObject(recordValue);
+                  counter.updateCount(value);
+
+                  if (!config.shouldDisableRecordOutput()) {
+                    if (config.shouldPrintOnlyPayload()) {
+                      System.out.println(value.toString());
+                    } else {
+                      System.out.println(record);
+                    }
+                  }
+
+                  if (config.shouldPrintCounters()) {
+                    counter.log();
+                  }
+
+                  committer.markProcessed((record));
                 }
                 committer.markBatchFinished();
             }).build()
@@ -44,6 +63,7 @@ public class EngineRunner {
       ExecutorService executor = Executors.newSingleThreadExecutor();
       executor.execute(engine);
     } catch (Exception e) {
+      System.out.println("Exception from engine: " + e);
       throw e;
     }
   }
