@@ -44,7 +44,7 @@ public class EngineRunner {
 
                   if (!config.shouldDisableRecordOutput()) {
                     if (config.shouldPrintOnlyPayload()) {
-                      System.out.println(value.toString());
+                      System.out.println(value);
                     } else {
                       System.out.println(record);
                     }
